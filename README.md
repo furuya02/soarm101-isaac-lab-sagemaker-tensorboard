@@ -70,7 +70,7 @@ The stack creates:
 
 - S3 bucket: `soarm101-isaac-lab-sagemaker-tensorboard-<ACCOUNT_ID>`
 - ECR repository: `soarm101-isaac-lab-sagemaker-tensorboard`
-- IAM role: `soarm101-isaac-lab-sagemaker-tensorboard-sagemaker-execution-role`
+- IAM role: `soarm101-isaac-lab-sagemaker-tensorboard-execution-role`
 
 To override the bucket suffix:
 
@@ -97,7 +97,7 @@ The first push transfers ~15 GB and takes 30-60 minutes depending on your uplink
 
 ```bash
 export SAGEMAKER_ROLE_ARN=$(aws iam get-role \
-  --role-name soarm101-isaac-lab-sagemaker-tensorboard-sagemaker-execution-role \
+  --role-name soarm101-isaac-lab-sagemaker-tensorboard-execution-role \
   --query 'Role.Arn' --output text)
 export ECR_IMAGE_URI=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/soarm101-isaac-lab-sagemaker-tensorboard:latest
 export S3_BUCKET=soarm101-isaac-lab-sagemaker-tensorboard-${ACCOUNT_ID}

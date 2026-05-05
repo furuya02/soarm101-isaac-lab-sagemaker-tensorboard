@@ -70,7 +70,7 @@ cdk deploy \
 
 - S3 バケット: `soarm101-isaac-lab-sagemaker-tensorboard-<ACCOUNT_ID>`
 - ECR リポジトリ: `soarm101-isaac-lab-sagemaker-tensorboard`
-- IAM ロール: `soarm101-isaac-lab-sagemaker-tensorboard-sagemaker-execution-role`
+- IAM ロール: `soarm101-isaac-lab-sagemaker-tensorboard-execution-role`
 
 bucket suffix を上書きする場合：
 
@@ -97,7 +97,7 @@ docker login nvcr.io
 
 ```bash
 export SAGEMAKER_ROLE_ARN=$(aws iam get-role \
-  --role-name soarm101-isaac-lab-sagemaker-tensorboard-sagemaker-execution-role \
+  --role-name soarm101-isaac-lab-sagemaker-tensorboard-execution-role \
   --query 'Role.Arn' --output text)
 export ECR_IMAGE_URI=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/soarm101-isaac-lab-sagemaker-tensorboard:latest
 export S3_BUCKET=soarm101-isaac-lab-sagemaker-tensorboard-${ACCOUNT_ID}

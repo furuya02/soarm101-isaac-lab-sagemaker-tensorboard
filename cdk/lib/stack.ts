@@ -35,7 +35,7 @@ export class SoarmStack extends cdk.Stack {
     });
 
     const sagemakerRole = new iam.Role(this, "SageMakerExecutionRole", {
-      roleName: `${projectName}-sagemaker-execution-role`,
+      roleName: `${projectName}-execution-role`,
       assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
