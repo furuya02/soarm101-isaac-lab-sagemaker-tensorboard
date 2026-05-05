@@ -1,8 +1,10 @@
 # soarm101-isaac-lab-sagemaker-tensorboard
 
-Sample code for training the SO-ARM101 Reach task with Isaac Lab on Amazon SageMaker Training Job + Managed Spot Training.
+Sample code for training the SO-ARM101 Reach task with Isaac Lab on Amazon SageMaker Training Job + Managed Spot Training, extended with TensorBoard visualization.
 
-Companion blog post: [SO-ARM101 with Isaac Lab on SageMaker Training Job (Managed Spot)](https://dev.classmethod.jp/articles/) (link to be filled in after publication).
+Two viewing modes are supported: post-hoc inspection of completed training logs on a local TensorBoard (Part 1), and near-real-time inspection of an in-flight training job's logs streamed via S3 (Part 2).
+
+Companion blog post: [Visualize Isaac Lab reinforcement learning on SageMaker Training Job with TensorBoard](https://dev.classmethod.jp/articles/) (link to be filled in after publication).
 
 > Japanese version: [README.ja.md](README.ja.md)
 
@@ -20,9 +22,11 @@ Companion blog post: [SO-ARM101 with Isaac Lab on SageMaker Training Job (Manage
 .
 ├── cdk/                    # AWS CDK (TypeScript): S3, ECR, IAM Role
 ├── scripts/
-│   └── push_to_ecr.sh      # Build & push the training image to ECR
+│   ├── push_to_ecr.sh      # Build & push the training image to ECR
+│   ├── download_logs.sh    # Part 1: download completed logs from S3 for local TB
+│   └── tb_live.sh          # Part 2: launch local TB pointed at an in-flight job's S3 logs
 ├── src/
-│   ├── train.py            # SageMaker entrypoint (SIGTERM forwarding, ckpt resume)
+│   ├── train.py            # SageMaker entrypoint (SIGTERM forwarding, ckpt resume, TB symlink)
 │   └── entrypoint.sh
 ├── Dockerfile              # Inherits NGC isaac-lab:2.3.2
 ├── submit.py               # SageMaker Estimator launcher
@@ -114,7 +118,41 @@ tar xzf model.tar.gz
 # rsl_rl/<task>/<run>/model_<iter>.pt
 ```
 
-### 6. (Optional) Render a trained policy to mp4
+### 6. View training progress with TensorBoard
+
+rsl_rl is launched with `--logger tensorboard` and emits episode mean reward, PPO losses, exploration noise, etc. as TensorBoard event files. In this repository, `src/train.py` symlinks the TensorBoard log directory into `/opt/ml/checkpoints/tensorboard/`, so events are **streamed to S3 in near real time during training** via the SageMaker `checkpoint_s3_uri` Continuous upload mode.
+
+Prerequisites:
+
+```bash
+pip install tensorboard tensorflow-io
+```
+
+#### Part 1: Inspect completed training logs locally
+
+Download the `model.tar.gz` of a finished job from S3, extract it, and start TensorBoard locally.
+
+```bash
+./scripts/download_logs.sh ${S3_BUCKET} ${JOB_NAME}
+tensorboard --logdir ./logs/${JOB_NAME}/rsl_rl/
+# Open http://localhost:6006 in your browser
+```
+
+#### Part 2: Watch an in-flight training job in near real time
+
+Right after submitting a job, launch a local TensorBoard pointed directly at the S3 checkpoint dir.
+
+```bash
+./scripts/tb_live.sh ${S3_BUCKET} ${JOB_NAME}
+# Open http://localhost:6006 in your browser
+```
+
+Notes:
+
+- TensorBoard continuously scans S3, and **leaving it running for long periods can run up S3 GET API costs** (see [tensorboard issue #6564](https://github.com/tensorflow/tensorboard/issues/6564)). Close the browser and stop the TensorBoard process (Ctrl-C) when you are done.
+- Sync interval depends on the SageMaker `checkpoint_s3_uri` Continuous upload mode and may have several tens of seconds to a few minutes of lag.
+
+### 7. (Optional) Render a trained policy to mp4
 
 A second SageMaker job runs `play.py --headless --video` to render the
 trained policy without any GUI. The Dockerfile installs `ffmpeg` because

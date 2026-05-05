@@ -1,8 +1,10 @@
 # soarm101-isaac-lab-sagemaker-tensorboard
 
-SO-ARM101 の Reach タスクを Isaac Lab で強化学習し、Amazon SageMaker Training Job + Managed Spot Training で実行するサンプルコードです。
+SO-ARM101 の Reach タスクを Isaac Lab で強化学習し、Amazon SageMaker Training Job + Managed Spot Training で実行するサンプルコードに、TensorBoard で学習進捗を可視化する機能を加えたものです。
 
-関連ブログ記事：[SO-ARM101 を Isaac Lab × Training Job (Managed Spot) で強化学習してみました](https://dev.classmethod.jp/articles/)（公開後にリンク差し替え）
+学習済みログをローカル TensorBoard で後追い参照する方法（Part 1）と、学習中のジョブのログを S3 経由でほぼリアルタイムに参照する方法（Part 2）の 2 通りに対応しています。
+
+関連ブログ記事：[SageMaker Training Job + TensorBoard で Isaac Lab の強化学習を可視化する](https://dev.classmethod.jp/articles/)（公開後にリンク差し替え）
 
 > English version: [README.md](README.md)
 
@@ -20,9 +22,11 @@ SO-ARM101 の Reach タスクを Isaac Lab で強化学習し、Amazon SageMaker
 .
 ├── cdk/                    # AWS CDK（TypeScript）: S3 / ECR / IAM Role
 ├── scripts/
-│   └── push_to_ecr.sh      # 学習用 image を build して ECR に push
+│   ├── push_to_ecr.sh      # 学習用 image を build して ECR に push
+│   ├── download_logs.sh    # Part 1: 学習済ログを S3 から DL してローカル TB で参照
+│   └── tb_live.sh          # Part 2: 学習中ジョブの TB ログを S3 直接参照で起動
 ├── src/
-│   ├── train.py            # SageMaker entrypoint（SIGTERM 対応、ckpt 自動再開）
+│   ├── train.py            # SageMaker entrypoint（SIGTERM 対応、ckpt 自動再開、TB symlink）
 │   └── entrypoint.sh
 ├── Dockerfile              # NGC isaac-lab:2.3.2 を継承
 ├── submit.py               # SageMaker Estimator 起動スクリプト
@@ -114,7 +118,41 @@ tar xzf model.tar.gz
 # rsl_rl/<task>/<run>/model_<iter>.pt が取り出せる
 ```
 
-### 6. （任意）学習済モデルから mp4 動画を生成する
+### 6. TensorBoard で学習進捗を見る
+
+rsl_rl は `--logger tensorboard` で起動されており、エピソード平均報酬・PPO の loss・探索ノイズなどを TensorBoard 形式で出力しています。本リポジトリでは `src/train.py` 内で TensorBoard ログ出力先を `/opt/ml/checkpoints/tensorboard/` への symlink として作成しているため、SageMaker の `checkpoint_s3_uri` 経由で **学習中もリアルタイムで S3 へ連続同期** されます。
+
+事前準備：
+
+```bash
+pip install tensorboard tensorflow-io
+```
+
+#### Part 1: 学習済みログをローカル TensorBoard で後追い参照する
+
+学習が完了したジョブの `model.tar.gz` を S3 から DL し、解凍してローカル TensorBoard を起動します。
+
+```bash
+./scripts/download_logs.sh ${S3_BUCKET} ${JOB_NAME}
+tensorboard --logdir ./logs/${JOB_NAME}/rsl_rl/
+# ブラウザで http://localhost:6006
+```
+
+#### Part 2: 学習中のジョブのログをリアルタイムで参照する
+
+ジョブ投入直後にローカル TensorBoard を S3 ダイレクト参照モードで起動し、学習中の curve をブラウザで眺めます。
+
+```bash
+./scripts/tb_live.sh ${S3_BUCKET} ${JOB_NAME}
+# ブラウザで http://localhost:6006
+```
+
+注意事項：
+
+- TensorBoard が S3 を継続スキャンするため、**長時間放置すると S3 GET API のコストが膨らむ**事例が報告されています（[tensorboard issue #6564](https://github.com/tensorflow/tensorboard/issues/6564)）。確認したらブラウザを閉じ、TensorBoard プロセス（Ctrl-C）を終了させてください。
+- 同期間隔は `checkpoint_s3_uri` の Continuous upload mode に依存し、数十秒〜数分のラグがあります。
+
+### 7. （任意）学習済モデルから mp4 動画を生成する
 
 学習済モデルの動作を視覚的に確認したい場合は、もう 1 つ SageMaker ジョブを投入して `play.py --headless --video` を実行します。GUI 環境は不要です。`Dockerfile` で `ffmpeg` を導入しているのは、Isaac Lab の `RecordVideo` ラッパーが frame buffers を mp4 にエンコードする際に `ffmpeg` を呼び出すためです（NGC の `isaac-lab` ベースイメージには ffmpeg は同梱されていません）。
 
