@@ -103,10 +103,10 @@ export ECR_IMAGE_URI=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/soarm101-
 export S3_BUCKET=soarm101-isaac-lab-sagemaker-tensorboard-${ACCOUNT_ID}
 
 # On-demand で動作確認
-USE_SPOT=false MAX_RUN_HOURS=1 python submit.py
+USE_SPOT=false MAX_RUN_MINUTES=15 python submit.py
 
 # Managed Spot 実行
-USE_SPOT=true MAX_RUN_HOURS=1 MAX_WAIT_HOURS=2 python submit.py
+USE_SPOT=true MAX_RUN_MINUTES=15 MAX_WAIT_MINUTES=16 python submit.py
 ```
 
 ### 5. 学習済みモデルの取得
@@ -159,7 +159,7 @@ tensorboard --logdir ./logs/${JOB_NAME}/rsl_rl/
 ```bash
 MODE=play \
 MODEL_S3_URI=s3://${S3_BUCKET}/output/${JOB_NAME}/output/model.tar.gz \
-USE_SPOT=true MAX_RUN_HOURS=1 MAX_WAIT_HOURS=2 \
+USE_SPOT=true MAX_RUN_MINUTES=15 MAX_WAIT_MINUTES=16 \
 python submit.py
 
 # play ジョブ完了後、動画をダウンロード:
