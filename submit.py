@@ -25,8 +25,8 @@ def main() -> None:
             "MAX_ITERATIONS": os.environ.get("MAX_ITERATIONS", "1000"),
             "EXPERIMENT_NAME": "so_arm101_reach",
         }
-        max_run_h = int(os.environ.get("MAX_RUN_HOURS", "1"))
-        max_wait_h = int(os.environ.get("MAX_WAIT_HOURS", "2"))
+        max_run_min = int(os.environ.get("MAX_RUN_MINUTES", "15"))
+        max_wait_min = int(os.environ.get("MAX_WAIT_MINUTES", "16"))
         job_name = f"soarm101-reach-{int(time.time())}"
     else:
         env = {
@@ -38,8 +38,8 @@ def main() -> None:
             "NUM_ENVS": os.environ.get("NUM_ENVS", "4"),
             "VIDEO_LENGTH": os.environ.get("VIDEO_LENGTH", "200"),
         }
-        max_run_h = int(os.environ.get("MAX_RUN_HOURS", "1"))
-        max_wait_h = int(os.environ.get("MAX_WAIT_HOURS", "2"))
+        max_run_min = int(os.environ.get("MAX_RUN_MINUTES", "15"))
+        max_wait_min = int(os.environ.get("MAX_WAIT_MINUTES", "16"))
         job_name = f"soarm101-reach-play-{int(time.time())}"
 
     kwargs: dict = dict(
@@ -49,10 +49,10 @@ def main() -> None:
         instance_type=os.environ.get("INSTANCE_TYPE", "ml.g5.2xlarge"),
         output_path=f"s3://{bucket}/output/",
         environment=env,
-        max_run=max_run_h * 3600,
+        max_run=max_run_min * 60,
     )
     if use_spot:
-        kwargs.update(use_spot_instances=True, max_wait=max_wait_h * 3600)
+        kwargs.update(use_spot_instances=True, max_wait=max_wait_min * 60)
         if mode == "train":
             kwargs.update(
                 checkpoint_s3_uri=f"s3://{bucket}/checkpoints/{job_name}/",
