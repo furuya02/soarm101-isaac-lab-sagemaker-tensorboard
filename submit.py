@@ -50,6 +50,9 @@ def main() -> None:
         output_path=f"s3://{bucket}/output/",
         environment=env,
         max_run=max_run_min * 60,
+        metric_definitions=[
+            {"Name": "mean_reward", "Regex": r"Mean reward:\s+([\-0-9.]+)"},
+        ],
     )
     if use_spot:
         kwargs.update(use_spot_instances=True, max_wait=max_wait_min * 60)
