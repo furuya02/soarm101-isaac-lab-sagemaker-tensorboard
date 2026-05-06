@@ -13,25 +13,11 @@ CKPT_DIR = Path("/opt/ml/checkpoints")
 MODEL_DIR = Path("/opt/ml/model")
 ISAACLAB_DIR = Path("/workspace/isaaclab")
 LOG_DIR = ISAACLAB_DIR / "logs" / "rsl_rl"
-TB_DIR = CKPT_DIR / "tensorboard"
-
-
-def setup_tensorboard_symlink() -> None:
-    """Redirect rsl_rl TensorBoard log dir to /opt/ml/checkpoints/tensorboard so
-    SageMaker checkpoint agent streams events to S3 during training."""
-    TB_DIR.mkdir(parents=True, exist_ok=True)
-    LOG_DIR.parent.mkdir(parents=True, exist_ok=True)
-    if LOG_DIR.is_symlink():
-        return
-    if LOG_DIR.exists():
-        shutil.rmtree(LOG_DIR)
-    LOG_DIR.symlink_to(TB_DIR)
 
 
 def main() -> int:
     CKPT_DIR.mkdir(parents=True, exist_ok=True)
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    setup_tensorboard_symlink()
 
     ckpts = sorted(CKPT_DIR.glob("model_*.pt"))
     resume_args = ["--resume", "--checkpoint", str(ckpts[-1])] if ckpts else []
